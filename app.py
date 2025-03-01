@@ -169,7 +169,6 @@ def style_table(df):
 def display_global_assessment(ga_data):
     """Build and display a styled table for the 'globalAssessment' section."""
     # Convert bullet lists into HTML bullet points or multiline strings
-    final_score = ga_data.get('finalScore', {})
     major_strengths = to_bullet_points(ga_data.get('majorStrengths', []))
     major_weaknesses = to_bullet_points(ga_data.get('majorWeaknesses', []))
     priority_recs_list = ga_data.get('priorityRecommendations', [])
@@ -179,7 +178,6 @@ def display_global_assessment(ga_data):
     viral_probability_text = f"{viral_prob.get('percentage', 'N/A')}% – {viral_prob.get('justification', '')}"
 
     data = [
-        {"Criterion": "Final Score", "Value": f"{final_score.get('scoreValue', 'N/A')} / 10"},
         {"Criterion": "Major Strengths", "Value": major_strengths},
         {"Criterion": "Major Weaknesses", "Value": major_weaknesses},
         {"Criterion": "Priority Recommendations", "Value": priority_recs_html},
