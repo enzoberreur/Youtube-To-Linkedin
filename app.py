@@ -48,6 +48,8 @@ def style_table(df):
     """
     Apply custom CSS styling to a DataFrame using Pandas Styler.
     Color-codes the "Score" column based on value.
+    Removes unnecessary index column.
+    Makes "Criterion" column bold.
     """
     # Remove index manually before styling
     df = df.reset_index(drop=True)  # Ensures no index is displayed
@@ -66,12 +68,21 @@ def style_table(df):
         except ValueError:
             return ""  # No color for non-numeric values
 
+    # Define a function to make the Criterion column bold
+    def bold_criterion(val):
+        """Apply bold formatting to the Criterion column."""
+        return "font-weight: bold;" if isinstance(val, str) else ""
+
     # Convert DataFrame to Styler
     styler = df.style
 
-    # Apply the color function to the Score column only
+    # Apply color function to the Score column (if it exists)
     if "Score" in df.columns:
         styler.applymap(color_score, subset=["Score"])
+
+    # Apply bold formatting to the Criterion column
+    if "Criterion" in df.columns:
+        styler.applymap(bold_criterion, subset=["Criterion"])
 
     # Set general table styles
     styler.set_properties(
@@ -100,8 +111,8 @@ def style_table(df):
         ]}
     ], overwrite=False)
 
-    # Convert to HTML
-    return styler.to_html()
+    # Convert to HTML and REMOVE INDEX COLUMN
+    return styler.hide(axis="index").to_html() 
 
 
 def display_global_assessment(ga_data):
