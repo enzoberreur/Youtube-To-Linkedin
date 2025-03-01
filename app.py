@@ -3,6 +3,8 @@ import requests
 import json
 import re
 import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
 
 # 🔑 Make Webhook URL (Replace with your actual webhook URL)
 MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/7troe5wj1k92ydltc39rv7l6ipj7okso"
@@ -44,6 +46,55 @@ def to_bullet_points(items):
     html_list = "".join(f"<li>{p}</li>" for p in items)
     return f"<ul>{html_list}</ul>"
 
+def calculate_category_averages(analysis_data):
+    """Calculate the average score for each category."""
+    categories = ["visualQuality", "audioQuality", "textElements", "viralPotential"]
+    averages = {}
+
+    for category in categories:
+        scores = [item["score"] for item in analysis_data.get("detailedAnalysis", {}).get(category, []) if "score" in item]
+        averages[category] = round(np.mean(scores), 1) if scores else 0  # Avoid division by zero
+
+    return averages
+
+def plot_spider_chart(averages):
+    """Generate and display a spider chart using Plotly with renamed categories."""
+    
+    # Mapping old category keys to new labels
+    category_labels = {
+        "visualQuality": "Visual Appeal",
+        "audioQuality": "Audio Clarity",
+        "textElements": "Text & Subtitles",
+        "viralPotential": "Engagement & Virality"
+    }
+
+    # Replace keys with their new labels
+    categories = [category_labels.get(cat, cat) for cat in averages.keys()]
+    values = list(averages.values())
+
+    values.append(values[0])  # Close the chart loop
+    categories.append(categories[0])
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=[f"<b>{cat}</b>" for cat in categories],  # Make category names bold
+        fill='toself',
+        name="Performance",
+        line=dict(color="red")
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, 10]),
+        ),
+        showlegend=False,
+        margin=dict(l=30, r=30, t=30, b=30)  # Reduce empty space
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    
 def style_table(df):
     """
     Apply custom CSS styling to a DataFrame using Pandas Styler.
@@ -141,20 +192,21 @@ def display_global_assessment(ga_data):
 def display_detailed_analysis(da_data):
     """Build and display styled tables for each subsection in the 'detailedAnalysis'."""
     # VISUAL QUALITY
-    st.subheader("2.1 Visual Quality")
-    show_subanalysis(da_data.get("visualQuality", []))
+    with st.expander("🔎 Voir le détail des résultats"):
+        st.subheader("2.1 Visual Quality")
+        show_subanalysis(da_data.get("visualQuality", []))
 
-    # AUDIO QUALITY
-    st.subheader("2.2 Audio Quality")
-    show_subanalysis(da_data.get("audioQuality", []))
+        # AUDIO QUALITY
+        st.subheader("2.2 Audio Quality")
+        show_subanalysis(da_data.get("audioQuality", []))
 
-    # TEXT ELEMENTS
-    st.subheader("2.3 Text Elements")
-    show_subanalysis(da_data.get("textElements", []))
+        # TEXT ELEMENTS
+        st.subheader("2.3 Text Elements")
+        show_subanalysis(da_data.get("textElements", []))
 
-    # VIRAL POTENTIAL
-    st.subheader("2.4 Viral Potential")
-    show_subanalysis(da_data.get("viralPotential", []))
+        # VIRAL POTENTIAL
+        st.subheader("2.4 Viral Potential")
+        show_subanalysis(da_data.get("viralPotential", []))
 
 def show_subanalysis(items_list):
     """
@@ -183,16 +235,14 @@ def show_subanalysis(items_list):
     st.markdown(html_table, unsafe_allow_html=True)
 
 def display_analysis(analysis_data):
-    """
-    Main display function:
-    1. Global Assessment
-    2. Detailed Analysis
-    """
-    # 1. GLOBAL ASSESSMENT
+
+    st.markdown("---")
+    averages = calculate_category_averages(analysis_data)
+    plot_spider_chart(averages)
+    st.markdown("---")
     st.header("Global Assessment")
     ga_data = analysis_data.get("globalAssessment", {})
     display_global_assessment(ga_data)
-
     st.markdown("---")
 
     # 2. DETAILED ANALYSIS
