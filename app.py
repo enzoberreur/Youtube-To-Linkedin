@@ -192,7 +192,7 @@ def display_global_assessment(ga_data):
 def display_detailed_analysis(da_data):
     """Build and display styled tables for each subsection in the 'detailedAnalysis'."""
     # VISUAL QUALITY
-    with st.expander("🔎 Voir le détail des résultats"):
+    with st.expander("🔎 See detailed analysis"):
         st.subheader("2.1 Visual Quality")
         show_subanalysis(da_data.get("visualQuality", []))
 
@@ -246,7 +246,6 @@ def display_analysis(analysis_data):
     st.markdown("---")
 
     # 2. DETAILED ANALYSIS
-    st.header("Detailed Analysis")
     da_data = analysis_data.get("detailedAnalysis", {})
     display_detailed_analysis(da_data)
 
