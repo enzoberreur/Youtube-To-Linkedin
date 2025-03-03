@@ -6,11 +6,18 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
-# 🔑 Make Webhook URL (Replace with your actual webhook URL)
-MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/7troe5wj1k92ydltc39rv7l6ipj7okso"
+# 🔑 Webhook URLs
+MAKE_WEBHOOK_CREATOR = "https://hook.eu2.make.com/7troe5wj1k92ydltc39rv7l6ipj7okso"
+MAKE_WEBHOOK_BRAND_ADS = "https://hook.eu2.make.com/ep4cfs86ztcdjwndtcv2583xnzhgxp6v"
 
 # 🚀 Streamlit App Title
 st.title("TikTok Creative Insight")
+
+# 🎛 Toggle button to switch between Creator mode and Brand Ads mode
+mode = st.toggle("Switch to Brand Ads Mode", value=False)
+
+# Determine which webhook to use based on the toggle state
+MAKE_WEBHOOK_URL = MAKE_WEBHOOK_BRAND_ADS if mode else MAKE_WEBHOOK_CREATOR
 
 # 📩 File uploader for video
 uploaded_file = st.file_uploader("📤 Upload a video (MP4)")
@@ -19,14 +26,13 @@ uploaded_file = st.file_uploader("📤 Upload a video (MP4)")
 # Helper Functions
 # ==========================
 
-def send_video_to_make(video_file):
-    """Send uploaded video to your Make scenario and return the JSON response."""
+def send_video_to_make(video_file, webhook_url):
+    """Send uploaded video to the selected Make scenario and return the JSON response."""
     files = {"video": (video_file.name, video_file, "video/mp4")}
     try:
-        response = requests.post(MAKE_WEBHOOK_URL, files=files)
+        response = requests.post(webhook_url, files=files)
         if response.status_code == 200:
             raw_response = response.text
-            # Remove any non-UTF-8 characters that could break JSON parsing
             cleaned_response = re.sub(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]', '', raw_response)
             return json.loads(cleaned_response)
         else:
@@ -35,6 +41,7 @@ def send_video_to_make(video_file):
     except Exception as e:
         st.error(f"🚨 An error occurred: {e}")
         return None
+
 
 def to_bullet_points(items):
     """
@@ -169,6 +176,7 @@ def style_table(df):
 def display_global_assessment(ga_data):
     """Build and display a styled table for the 'globalAssessment' section."""
     # Convert bullet lists into HTML bullet points or multiline strings
+    final_score = ga_data.get('finalScore', {})
     major_strengths = to_bullet_points(ga_data.get('majorStrengths', []))
     major_weaknesses = to_bullet_points(ga_data.get('majorWeaknesses', []))
     priority_recs_list = ga_data.get('priorityRecommendations', [])
@@ -178,6 +186,7 @@ def display_global_assessment(ga_data):
     viral_probability_text = f"{viral_prob.get('percentage', 'N/A')}% – {viral_prob.get('justification', '')}"
 
     data = [
+        {"Criterion": "Final Score", "Value": f"{final_score.get('scoreValue', 'N/A')} / 10"},
         {"Criterion": "Major Strengths", "Value": major_strengths},
         {"Criterion": "Major Weaknesses", "Value": major_weaknesses},
         {"Criterion": "Priority Recommendations", "Value": priority_recs_html},
@@ -190,7 +199,7 @@ def display_global_assessment(ga_data):
 def display_detailed_analysis(da_data):
     """Build and display styled tables for each subsection in the 'detailedAnalysis'."""
     # VISUAL QUALITY
-    with st.expander("🔎 See detailed analysis"):
+    with st.expander("🔎 Voir le détail des résultats"):
         st.subheader("2.1 Visual Quality")
         show_subanalysis(da_data.get("visualQuality", []))
 
@@ -244,6 +253,7 @@ def display_analysis(analysis_data):
     st.markdown("---")
 
     # 2. DETAILED ANALYSIS
+    st.header("Detailed Analysis")
     da_data = analysis_data.get("detailedAnalysis", {})
     display_detailed_analysis(da_data)
 
@@ -254,7 +264,7 @@ def display_analysis(analysis_data):
 # 🎯 Process the uploaded video
 if uploaded_file and st.button("Analyze Video"):
     with st.spinner("⏳ Uploading video and analyzing... This may take up to 60 seconds."):
-        response = send_video_to_make(uploaded_file)
+        response = send_video_to_make(uploaded_file, MAKE_WEBHOOK_URL)
 
         if response:
             # If your Make scenario returns the entire JSON in a single field, adjust accordingly.
